@@ -1,0 +1,29 @@
+body {
+    margin: 1.5% 15%;
+}
+
+.fundo {
+    display:flow-root;
+    background-image: url(../img/fundo.png);
+    }
+
+.fundo2 {
+    background-image: url(../img/fundo2.png);
+}
+
+.imgcapa {
+    margin: 15px auto ;
+}
+
+.indiceprimario {
+    margin: -3% auto auto 75%;
+}
+
+.indice {
+    margin-left: 0.2%;
+    margin-right: 0.2%;
+}
+
+.motivosestudar {
+    margin-left: 3%;
+    margin-bottom: 20px;
