@@ -1,0 +1,21 @@
+{
+  "name": "presenca",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Check-in de presença com validação por GPS + QR/token rotativo",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "qrcode.react": "^4.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.7.0",
+    "vite": "^6.4.3"
+  }
+}
