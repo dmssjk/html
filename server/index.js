@@ -7,6 +7,7 @@ import {
   createSession,
   getFull,
   getPublic,
+  listSessions,
   closeSession,
   checkin,
   subscribe,
@@ -24,6 +25,12 @@ app.post("/api/sessions", (req, res) => {
   const result = createSession(req.body || {});
   if (result.error) return res.status(400).json(result);
   res.status(201).json(result.session);
+});
+
+// Histórico de aulas de um professor (escopo por "owner" do navegador dele).
+app.get("/api/sessions", (req, res) => {
+  if (!req.query.owner) return res.status(400).json({ error: "owner" });
+  res.json(listSessions(req.query.owner));
 });
 
 // Visão completa do professor (lista de presença).

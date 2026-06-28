@@ -7,15 +7,22 @@ async function jsonOrThrow(res) {
   return { status: res.status, ok: res.ok, body };
 }
 
-export async function createSession({ name, loc, accuracy }) {
+export async function createSession({ name, loc, accuracy, owner }) {
   const res = await fetch(`${BASE}/sessions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, loc, accuracy }),
+    body: JSON.stringify({ name, loc, accuracy, owner }),
   });
   const { ok, body } = await jsonOrThrow(res);
   if (!ok) throw new Error(body.error || "create_failed");
   return body;
+}
+
+// Histórico de aulas do professor (escopo por owner).
+export async function listSessions(owner) {
+  const res = await fetch(`${BASE}/sessions?owner=${encodeURIComponent(owner)}`);
+  if (!res.ok) return [];
+  return res.json();
 }
 
 // Visão completa do professor (com lista de presença).

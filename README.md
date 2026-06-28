@@ -21,17 +21,22 @@ acontece no servidor** — o cliente nunca decide se uma presença vale:
 - Cada aula tem um **link estável** (`?mode=aluno&s=<id>`) que o professor
   compartilha; o check-in é por `sessionId` + GPS + aula aberta.
 - O professor recebe a lista de presença ao vivo por **Server-Sent Events**
-  (`/api/sessions/:id/stream`) e pode **exportar a lista em CSV**.
-- O store é em memória com **persistência em arquivo** (`data/sessions.json`):
-  carrega no boot e grava (com debounce) a cada mudança, então reiniciar o
-  servidor não perde as aulas. Trocar por banco/redis é só reimplementar
-  `server/store.js`. O diretório dos dados é configurável via `DATA_DIR`.
+  (`/api/sessions/:id/stream`), tem **histórico das próprias aulas** e pode
+  **exportar a lista em CSV**.
+- Os dados ficam em **SQLite** (`data/presenca.db`) via o módulo nativo
+  `node:sqlite` — sem dependência extra nem compilação. Tabelas `sessions` e
+  `attendance`. O diretório é configurável via `DATA_DIR`. Um eventual
+  `data/sessions.json` de versões antigas é importado automaticamente no
+  primeiro boot (e renomeado para `.imported`).
+- O **histórico** é escopado por um `owner` gerado por navegador (sem login):
+  cada professor vê só as próprias aulas.
 
 ### API
 
 | Método | Rota                          | Função                                      |
 | ------ | ----------------------------- | ------------------------------------------- |
 | POST   | `/api/sessions`               | abre aula (fixa local)                      |
+| GET    | `/api/sessions?owner=<id>`    | histórico de aulas do professor             |
 | GET    | `/api/sessions/:id`           | visão do professor (com lista de presença)  |
 | GET    | `/api/sessions/:id/public`    | visão do aluno (só nome + aberta?)          |
 | GET    | `/api/sessions/:id/stream`    | SSE ao vivo (lista de presença)             |
@@ -70,7 +75,7 @@ celular para o QR) e abra como aluno em outra aba/aparelho.
 ```
 server/
   index.js                # Express: rotas, SSE, serve o build
-  store.js                # store em memória + cálculo de distância
+  store.js                # banco SQLite (node:sqlite) + cálculo de distância
 src/
   api.js                  # camada de acesso ao backend (fetch + EventSource)
   App.jsx                 # shell, troca de modo, deep link da aula
@@ -80,7 +85,7 @@ src/
     geo.js                # haversine + wrapper Promise da geolocalização
   components/
     Home.jsx
-    Professor.jsx         # cria sessão, assina SSE, mostra link/QR + lista ao vivo
+    Professor.jsx         # cria/retoma sessão, SSE, link/QR, lista ao vivo + histórico
     Aluno.jsx             # abre o link, formulário de presença, check-in via API
     CheckinQR.jsx         # QR real (qrcode.react) com o link da aula
     QrScanner.jsx         # leitura do QR pela câmera (@zxing, lazy-loaded)
@@ -99,8 +104,10 @@ de `server/store.js` (servidor).
 
 ## Limitações conhecidas
 
-- Persistência é um arquivo JSON (`data/sessions.json`), sem índice nem
-  concorrência real — adequado a protótipo, troque por um banco para escala.
+- SQLite local em arquivo (ótimo para um servidor único). Para múltiplas
+  instâncias/escala horizontal, migrar para um banco servido (Postgres etc.).
+- `node:sqlite` é experimental no Node (emite aviso, silenciado nos scripts via
+  `--disable-warning=ExperimentalWarning`); requer Node 22.5+.
 - Anti-fraude = só GPS: o link é estável, então pode ser repassado para alguém
   fora da sala — mas o GPS bloqueia o check-in dele. GPS ainda é falsificável no
   aparelho. Ver "Próximos passos".
@@ -110,8 +117,9 @@ de `server/store.js` (servidor).
 
 ## Próximos passos
 
-1. **Banco de dados** no lugar do arquivo JSON + histórico de aulas do professor.
-2. **Anti-fraude**: exigir `accuracy` mínima do GPS, limitar 1 check-in por
+1. **Anti-fraude**: exigir `accuracy` mínima do GPS, limitar 1 check-in por
    dispositivo e detectar saltos improváveis de posição. Para reforçar o "estar
    presente no momento", dá para reintroduzir um token rotativo embutido no QR
    (com link de validade curta) como camada extra.
+2. **Autenticação do professor** (hoje o histórico é escopado por navegador via
+   `owner` em `localStorage`).
