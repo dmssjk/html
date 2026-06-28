@@ -5,11 +5,11 @@ import path from "node:path";
 import fs from "node:fs";
 import {
   createSession,
-  getSession,
+  getFull,
+  getPublic,
   closeSession,
   checkin,
   subscribe,
-  rotateExpired,
 } from "./store.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -26,8 +26,16 @@ app.post("/api/sessions", (req, res) => {
   res.status(201).json(result.session);
 });
 
+// Visão completa do professor (lista de presença).
 app.get("/api/sessions/:id", (req, res) => {
-  const s = getSession(req.params.id);
+  const s = getFull(req.params.id);
+  if (!s) return res.status(404).json({ error: "not_found" });
+  res.json(s);
+});
+
+// Visão pública do aluno que abre o link (só nome + aberta?).
+app.get("/api/sessions/:id/public", (req, res) => {
+  const s = getPublic(req.params.id);
   if (!s) return res.status(404).json({ error: "not_found" });
   res.json(s);
 });
@@ -38,9 +46,9 @@ app.post("/api/sessions/:id/close", (req, res) => {
   res.json(s);
 });
 
-// SSE: stream ao vivo da sessão (token rotativo + lista de presença).
+// SSE: stream ao vivo da lista de presença para o professor.
 app.get("/api/sessions/:id/stream", (req, res) => {
-  const s = getSession(req.params.id);
+  const s = getFull(req.params.id);
   if (!s) return res.status(404).json({ error: "not_found" });
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
@@ -54,7 +62,7 @@ app.get("/api/sessions/:id/stream", (req, res) => {
 app.post("/api/checkin", (req, res) => {
   const result = checkin(req.body || {});
   if (result.ok) return res.json(result);
-  const code = result.error === "token" || result.error === "distance" ? 422 : 400;
+  const code = result.error === "distance" || result.error === "closed" ? 422 : 400;
   res.status(code).json(result);
 });
 
@@ -64,9 +72,6 @@ if (fs.existsSync(dist)) {
   app.use(express.static(dist));
   app.get(/^(?!\/api).*/, (_req, res) => res.sendFile(path.join(dist, "index.html")));
 }
-
-// Rotação central de tokens expirados (1x por segundo).
-setInterval(rotateExpired, 1000);
 
 app.listen(PORT, () => {
   console.log(`Presença API ouvindo em http://localhost:${PORT}`);

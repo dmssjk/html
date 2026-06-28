@@ -1,17 +1,16 @@
 import { QRCodeSVG } from "qrcode.react";
 
-// QR real (escaneável). Codifica um deep link para a tela do aluno já com o
-// token no parâmetro `?code=`, então apontar a câmera do celular abre o
-// check-in com o código preenchido.
-export function checkinUrl(token) {
+// Link estável da aula. O aluno abre direto (sem login, sem código) e cai no
+// formulário de check-in já apontando para esta sessão.
+export function shareUrl(sessionId) {
   const base = `${window.location.origin}${window.location.pathname}`;
-  return `${base}?mode=aluno&code=${encodeURIComponent(token)}`;
+  return `${base}?mode=aluno&s=${encodeURIComponent(sessionId)}`;
 }
 
-export default function CheckinQR({ token, size = 220 }) {
+export default function CheckinQR({ sessionId, size = 220 }) {
   return (
     <QRCodeSVG
-      value={checkinUrl(token)}
+      value={shareUrl(sessionId)}
       size={size}
       level="M"
       marginSize={2}

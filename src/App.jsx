@@ -1,19 +1,21 @@
 import { useState } from "react";
 import { S, globalCss } from "./styles.js";
-import { RADIUS_METERS, TOKEN_TTL } from "./constants.js";
+import { RADIUS_METERS } from "./constants.js";
 import Home from "./components/Home.jsx";
 import Professor from "./components/Professor.jsx";
 import Aluno from "./components/Aluno.jsx";
 
-// Deep link vindo do QR: ?mode=aluno&code=XXXXXX
+// Deep link vindo do QR/link compartilhado: ?mode=aluno&s=<sessionId>
 function readDeepLink() {
   const p = new URLSearchParams(window.location.search);
-  return { mode: p.get("mode"), code: (p.get("code") || "").toUpperCase() };
+  return { mode: p.get("mode"), sessionId: p.get("s") || "" };
 }
 
 export default function App() {
   const deep = readDeepLink();
-  const [mode, setMode] = useState(deep.mode === "aluno" || deep.mode === "prof" ? deep.mode : null);
+  // Com link de aula (?s=...), vai direto pro modo aluno.
+  const initialMode = deep.sessionId ? "aluno" : deep.mode === "prof" ? "prof" : deep.mode === "aluno" ? "aluno" : null;
+  const [mode, setMode] = useState(initialMode);
 
   return (
     <div style={S.app}>
@@ -32,10 +34,10 @@ export default function App() {
 
       {!mode && <Home setMode={setMode} />}
       {mode === "prof" && <Professor />}
-      {mode === "aluno" && <Aluno initialCode={deep.code} />}
+      {mode === "aluno" && <Aluno initialSessionId={deep.sessionId} />}
 
       <footer style={S.footer}>
-        Protótipo · validação por GPS (raio {RADIUS_METERS}m) + token que expira em {TOKEN_TTL}s
+        Protótipo · sem login: o aluno abre o link e confirma presença por GPS (raio {RADIUS_METERS}m)
       </footer>
     </div>
   );

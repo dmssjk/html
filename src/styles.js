@@ -29,12 +29,6 @@ export const S = {
   liveName: { fontSize: 20, fontWeight: 800, letterSpacing: -0.4 },
   liveMeta: { fontSize: 13, opacity: 0.65, marginTop: 3 },
   qrWrap: { background: "#fff", border: `1px solid ${line}`, borderRadius: 16, padding: 22, display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 26 },
-  tokenLine: { display: "flex", flexDirection: "column", alignItems: "center", marginTop: 14 },
-  tokenLabel: { fontSize: 11, textTransform: "uppercase", letterSpacing: 1.5, opacity: 0.5 },
-  tokenValue: { fontSize: 28, fontWeight: 800, letterSpacing: 3, fontFamily: "ui-monospace, monospace" },
-  countdown: { width: "100%", height: 6, background: line, borderRadius: 99, marginTop: 14, overflow: "hidden" },
-  countdownBar: { height: "100%", background: accent, transition: "width 1s linear" },
-  countdownText: { fontSize: 12, opacity: 0.6, marginTop: 6 },
   listTitle: { fontSize: 15, fontWeight: 700, marginBottom: 10 },
   empty: { fontSize: 14, opacity: 0.6, padding: "18px 0", textAlign: "center", border: `1px dashed ${line}`, borderRadius: 12 },
   list: { listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 },
@@ -50,6 +44,11 @@ export const S = {
   video: { width: "100%", aspectRatio: "1 / 1", objectFit: "cover", borderRadius: 12, background: "#000" },
   divider: { display: "flex", alignItems: "center", gap: 10, margin: "4px 0", fontSize: 12, opacity: 0.5 },
   dividerLine: { flex: 1, height: 1, background: line },
+  shareRow: { display: "flex", gap: 8, marginTop: 16, width: "100%" },
+  shareInput: { flex: 1, minWidth: 0, padding: "11px 12px", fontSize: 13, border: `1px solid ${line}`, borderRadius: 9, background: paper, color: ink, outline: "none", overflow: "hidden", textOverflow: "ellipsis" },
+  copyBtn: { padding: "0 16px", fontSize: 14, fontWeight: 700, color: "#fff", background: ink, border: "none", borderRadius: 9, cursor: "pointer", whiteSpace: "nowrap" },
+  qrCaption: { fontSize: 12, opacity: 0.55, marginTop: 12, textAlign: "center", lineHeight: 1.4 },
+  classTag: { fontSize: 12, textTransform: "uppercase", letterSpacing: 1.5, color: accent, fontWeight: 700, marginBottom: 6 },
 };
 
 export const globalCss = `

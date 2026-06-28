@@ -1,19 +1,13 @@
 import { randomUUID } from "node:crypto";
 
 // ---- parâmetros (espelham src/constants.js) ----
-export const RADIUS_METERS = 75;
-export const TOKEN_TTL = 45; // segundos
-export const TOKEN_GRACE_MS = 2000;
+export const RADIUS_METERS = 75; // raio aceito ao redor da sala
 
 // ---- store em memória ----
 // Map<sessionId, session>. Trocar por banco/redis em produção.
 const sessions = new Map();
 // Map<sessionId, Set<res>> — conexões SSE abertas por sessão.
 const subscribers = new Map();
-
-function makeToken() {
-  return Math.random().toString(36).slice(2, 8).toUpperCase();
-}
 
 function distMeters(a, b) {
   const R = 6371000;
@@ -28,17 +22,20 @@ function distMeters(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-// Versão pública da sessão (segura para enviar ao cliente).
-function publicView(s) {
+// Visão completa — para o professor (dono da aula): inclui a lista de presença.
+function fullView(s) {
   return {
     id: s.id,
     name: s.name,
     open: s.open,
-    token: s.token,
-    tokenAt: s.tokenAt,
     accuracy: s.accuracy,
     present: s.present,
   };
+}
+
+// Visão pública — para o aluno que abre o link: só o necessário pro formulário.
+function publicView(s) {
+  return { id: s.id, name: s.name, open: s.open };
 }
 
 // ---- SSE ----
@@ -58,7 +55,7 @@ function emit(id) {
   const s = sessions.get(id);
   const set = subscribers.get(id);
   if (!s || !set) return;
-  const payload = `data: ${JSON.stringify(publicView(s))}\n\n`;
+  const payload = `data: ${JSON.stringify(fullView(s))}\n\n`;
   for (const res of set) res.write(payload);
 }
 
@@ -74,16 +71,19 @@ export function createSession({ name, loc, accuracy }) {
     loc,
     accuracy: Number(accuracy) || 0,
     open: true,
-    token: makeToken(),
-    tokenAt: Date.now(),
     createdAt: Date.now(),
     present: [],
   };
   sessions.set(id, s);
-  return { session: publicView(s) };
+  return { session: fullView(s) };
 }
 
-export function getSession(id) {
+export function getFull(id) {
+  const s = sessions.get(id);
+  return s ? fullView(s) : null;
+}
+
+export function getPublic(id) {
   const s = sessions.get(id);
   return s ? publicView(s) : null;
 }
@@ -93,29 +93,16 @@ export function closeSession(id) {
   if (!s) return null;
   s.open = false;
   emit(id);
-  return publicView(s);
+  return fullView(s);
 }
 
-// Encontra a sessão aberta cujo token atual (ainda válido) bate com o código.
-function findByToken(code) {
-  const now = Date.now();
-  const wanted = (code || "").trim().toUpperCase();
-  if (!wanted) return null;
-  for (const s of sessions.values()) {
-    if (!s.open) continue;
-    const fresh = now - s.tokenAt <= TOKEN_TTL * 1000 + TOKEN_GRACE_MS;
-    if (fresh && s.token === wanted) return s;
-  }
-  return null;
-}
-
-export function checkin({ name, code, loc }) {
+export function checkin({ sessionId, name, loc }) {
   if (!name || !name.trim()) return { error: "name" };
   if (!loc || typeof loc.lat !== "number" || typeof loc.lng !== "number") {
     return { error: "loc" };
   }
-  const s = findByToken(code);
-  if (!s) return { error: "token" };
+  const s = sessions.get(sessionId);
+  if (!s || !s.open) return { error: "closed" };
 
   const dist = Math.round(distMeters(s.loc, loc));
   if (dist > RADIUS_METERS) return { error: "distance", dist };
@@ -133,17 +120,4 @@ export function checkin({ name, code, loc }) {
   });
   emit(s.id);
   return { ok: true, dist };
-}
-
-// Rotaciona tokens expirados das sessões abertas e notifica via SSE.
-// Chamado por um intervalo no index.js.
-export function rotateExpired() {
-  const now = Date.now();
-  for (const s of sessions.values()) {
-    if (s.open && now - s.tokenAt >= TOKEN_TTL * 1000) {
-      s.token = makeToken();
-      s.tokenAt = now;
-      emit(s.id);
-    }
-  }
 }

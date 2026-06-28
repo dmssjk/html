@@ -18,8 +18,16 @@ export async function createSession({ name, loc, accuracy }) {
   return body;
 }
 
+// Visão completa do professor (com lista de presença).
 export async function getSession(id) {
   const res = await fetch(`${BASE}/sessions/${id}`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
+// Visão pública do aluno (nome da aula + se está aberta).
+export async function getPublicSession(id) {
+  const res = await fetch(`${BASE}/sessions/${id}/public`);
   if (!res.ok) return null;
   return res.json();
 }
@@ -28,11 +36,11 @@ export async function closeSession(id) {
   await fetch(`${BASE}/sessions/${id}/close`, { method: "POST" }).catch(() => {});
 }
 
-export async function checkin({ name, code, loc }) {
+export async function checkin({ sessionId, name, loc }) {
   const res = await fetch(`${BASE}/checkin`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, code, loc }),
+    body: JSON.stringify({ sessionId, name, loc }),
   });
   return jsonOrThrow(res);
 }

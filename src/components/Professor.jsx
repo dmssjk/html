@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { S } from "../styles.js";
-import { RADIUS_METERS, TOKEN_TTL, GEO_OPTS } from "../constants.js";
+import { RADIUS_METERS, GEO_OPTS } from "../constants.js";
 import { getPosition } from "../utils/geo.js";
-import { secondsLeft } from "../utils/token.js";
-import { useNow } from "../hooks/useNow.js";
 import { createSession, getSession, closeSession, subscribeSession } from "../api.js";
-import CheckinQR from "./CheckinQR.jsx";
+import CheckinQR, { shareUrl } from "./CheckinQR.jsx";
 
 const SID_KEY = "presenca:sid"; // id da aula desta professora, para retomar após refresh
 
@@ -15,10 +13,9 @@ export default function Professor() {
   const [error, setError] = useState("");
   const [sessionId, setSessionId] = useState(() => localStorage.getItem(SID_KEY));
   const [session, setSession] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const open = !!(session && session.open);
-  const now = useNow(open);
-  const left = open ? secondsLeft(session.tokenAt, now) : TOKEN_TTL;
 
   // Retoma/assina a sessão sempre que houver um id (após criar ou após refresh).
   useEffect(() => {
@@ -83,6 +80,16 @@ export default function Professor() {
     setStatus("idle");
   };
 
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl(sessionId));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* clipboard bloqueado — o aluno pode ler o QR */
+    }
+  };
+
   if (!open) {
     return (
       <main style={S.main}>
@@ -121,15 +128,15 @@ export default function Professor() {
       </div>
 
       <div style={S.qrWrap}>
-        <CheckinQR token={session.token} />
-        <div style={S.tokenLine}>
-          <span style={S.tokenLabel}>código atual</span>
-          <span style={S.tokenValue}>{session.token}</span>
+        <CheckinQR sessionId={session.id} />
+        <div style={S.qrCaption}>
+          O aluno escaneia o QR ou abre o link abaixo.<br />
+          Sem login: é só preencher o nome e confirmar o GPS.
         </div>
-        <div style={S.countdown} aria-hidden="true">
-          <div style={{ ...S.countdownBar, width: `${(left / TOKEN_TTL) * 100}%` }} />
+        <div style={S.shareRow}>
+          <input style={S.shareInput} value={shareUrl(session.id)} readOnly onFocus={(e) => e.target.select()} />
+          <button style={S.copyBtn} onClick={copyLink}>{copied ? "✓ copiado" : "copiar"}</button>
         </div>
-        <div style={S.countdownText}>renova em {left}s</div>
       </div>
 
       <h3 style={S.listTitle}>Lista de presença</h3>
