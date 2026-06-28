@@ -133,8 +133,9 @@ export function closeSession(id) {
   return fullView(s);
 }
 
-export function checkin({ sessionId, name, loc }) {
+export function checkin({ sessionId, name, studentId, loc }) {
   if (!name || !name.trim()) return { error: "name" };
+  if (!studentId || !studentId.trim()) return { error: "studentId" };
   if (!loc || typeof loc.lat !== "number" || typeof loc.lng !== "number") {
     return { error: "loc" };
   }
@@ -144,14 +145,17 @@ export function checkin({ sessionId, name, loc }) {
   const dist = Math.round(distMeters(s.loc, loc));
   if (dist > RADIUS_METERS) return { error: "distance", dist };
 
-  const norm = name.trim().toLowerCase();
-  if (s.present.some((p) => p.name.toLowerCase() === norm)) {
+  // Dedup pela matrícula (identidade estável) — dois "João" não colidem.
+  const matricula = studentId.trim();
+  const norm = matricula.toLowerCase();
+  if (s.present.some((p) => (p.studentId || "").toLowerCase() === norm)) {
     return { ok: true, dist, already: true };
   }
 
   s.present.push({
     id: randomUUID(),
     name: name.trim(),
+    studentId: matricula,
     dist,
     time: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
   });

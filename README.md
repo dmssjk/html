@@ -9,8 +9,8 @@ Dois modos:
 
 - **Professor** — abre a aula, fixa o GPS da sala, gera um **link/QR
   compartilhável** e acompanha a lista de presença ao vivo (via SSE).
-- **Aluno** — abre o link (ou escaneia o QR), digita o nome e confirma a
-  presença. O servidor confere a distância antes de registrar.
+- **Aluno** — abre o link (ou escaneia o QR), informa nome e **matrícula** e
+  confirma a presença. O servidor confere a distância antes de registrar.
 
 ## Arquitetura
 
@@ -104,14 +104,14 @@ de `server/store.js` (servidor).
 - Anti-fraude = só GPS: o link é estável, então pode ser repassado para alguém
   fora da sala — mas o GPS bloqueia o check-in dele. GPS ainda é falsificável no
   aparelho. Ver "Próximos passos".
-- Sem autenticação: dedup de aluno é por nome (dois "João" colidem). A visão do
-  professor (`/api/sessions/:id`) também não é autenticada.
+- Sem autenticação: a matrícula é só um campo informado (deduplica os
+  check-ins, mas não prova identidade). A visão do professor
+  (`/api/sessions/:id`) também não é autenticada.
 
 ## Próximos passos
 
-1. **Identidade do aluno** (matrícula/login) no lugar de dedup por nome.
-2. **Banco de dados** no lugar do arquivo JSON + histórico de aulas do professor.
-3. **Anti-fraude**: exigir `accuracy` mínima do GPS, limitar 1 check-in por
+1. **Banco de dados** no lugar do arquivo JSON + histórico de aulas do professor.
+2. **Anti-fraude**: exigir `accuracy` mínima do GPS, limitar 1 check-in por
    dispositivo e detectar saltos improváveis de posição. Para reforçar o "estar
    presente no momento", dá para reintroduzir um token rotativo embutido no QR
    (com link de validade curta) como camada extra.

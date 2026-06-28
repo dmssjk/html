@@ -20,6 +20,7 @@ export default function Aluno({ initialSessionId = "" }) {
   const [sessionId, setSessionId] = useState(initialSessionId);
   const [info, setInfo] = useState(undefined); // undefined=carregando | null=não achou | {name,open}
   const [name, setName] = useState("");
+  const [studentId, setStudentId] = useState("");
   const [status, setStatus] = useState("form"); // form|checking|ok|error
   const [msg, setMsg] = useState("");
   const [scanning, setScanning] = useState(false);
@@ -52,6 +53,7 @@ export default function Aluno({ initialSessionId = "" }) {
 
   const submit = async () => {
     if (!name.trim()) { setStatus("error"); setMsg("Digite seu nome."); return; }
+    if (!studentId.trim()) { setStatus("error"); setMsg("Digite sua matrícula."); return; }
 
     setStatus("checking");
     setMsg("Conferindo sua localização…");
@@ -75,6 +77,7 @@ export default function Aluno({ initialSessionId = "" }) {
       const { body } = await checkin({
         sessionId,
         name: name.trim(),
+        studentId: studentId.trim(),
         loc: { lat: pos.coords.latitude, lng: pos.coords.longitude },
       });
 
@@ -96,6 +99,8 @@ export default function Aluno({ initialSessionId = "" }) {
           ? `Você está a ~${body.dist}m da sala. Precisa estar a no máximo ${RADIUS_METERS}m para marcar presença.`
           : body.error === "name"
           ? "Digite seu nome."
+          : body.error === "studentId"
+          ? "Digite sua matrícula."
           : "Não foi possível marcar presença. Tente de novo."
       );
     } catch {
@@ -178,6 +183,16 @@ export default function Aluno({ initialSessionId = "" }) {
       <h2 style={S.h2}>Confirmar presença</h2>
       <label style={S.label} htmlFor="nome">Seu nome</label>
       <input id="nome" style={S.input} value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome completo" />
+      <label style={S.label} htmlFor="matricula">Matrícula</label>
+      <input
+        id="matricula"
+        style={S.input}
+        value={studentId}
+        onChange={(e) => setStudentId(e.target.value)}
+        placeholder="Ex.: 2023123456"
+        inputMode="text"
+        autoComplete="off"
+      />
       <p style={S.hint}>
         Ao confirmar, vamos checar seu GPS. Você precisa estar dentro da sala
         (raio de {RADIUS_METERS}m) para a presença valer.

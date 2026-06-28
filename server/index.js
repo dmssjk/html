@@ -59,8 +59,8 @@ function slug(s) {
 app.get("/api/sessions/:id/export.csv", (req, res) => {
   const s = getFull(req.params.id);
   if (!s) return res.status(404).json({ error: "not_found" });
-  const rows = [["nome", "distancia_m", "horario"]];
-  for (const p of s.present) rows.push([p.name, p.dist, p.time]);
+  const rows = [["nome", "matricula", "distancia_m", "horario"]];
+  for (const p of s.present) rows.push([p.name, p.studentId || "", p.dist, p.time]);
   const csv = rows.map((r) => r.map(csvCell).join(",")).join("\r\n");
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
   res.setHeader("Content-Disposition", `attachment; filename="presenca-${slug(s.name)}.csv"`);

@@ -153,7 +153,10 @@ export default function Professor() {
         <ul style={S.list}>
           {present.map((p) => (
             <li key={p.id} style={S.listItem}>
-              <span>{p.name}</span>
+              <span style={S.listPerson}>
+                <span>{p.name}</span>
+                {p.studentId && <span style={S.listSub}>mat. {p.studentId}</span>}
+              </span>
               <span style={S.listMeta}>{p.dist}m · {p.time}</span>
             </li>
           ))}
