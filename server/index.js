@@ -46,6 +46,27 @@ app.post("/api/sessions/:id/close", (req, res) => {
   res.json(s);
 });
 
+// Exporta a lista de presença em CSV (para o professor).
+function csvCell(v) {
+  const s = String(v ?? "");
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+function slug(s) {
+  return (s || "aula")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase() || "aula";
+}
+app.get("/api/sessions/:id/export.csv", (req, res) => {
+  const s = getFull(req.params.id);
+  if (!s) return res.status(404).json({ error: "not_found" });
+  const rows = [["nome", "distancia_m", "horario"]];
+  for (const p of s.present) rows.push([p.name, p.dist, p.time]);
+  const csv = rows.map((r) => r.map(csvCell).join(",")).join("\r\n");
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="presenca-${slug(s.name)}.csv"`);
+  res.send("﻿" + csv); // BOM para o Excel abrir os acentos corretamente
+});
+
 // SSE: stream ao vivo da lista de presença para o professor.
 app.get("/api/sessions/:id/stream", (req, res) => {
   const s = getFull(req.params.id);

@@ -49,6 +49,8 @@ export const S = {
   copyBtn: { padding: "0 16px", fontSize: 14, fontWeight: 700, color: "#fff", background: ink, border: "none", borderRadius: 9, cursor: "pointer", whiteSpace: "nowrap" },
   qrCaption: { fontSize: 12, opacity: 0.55, marginTop: 12, textAlign: "center", lineHeight: 1.4 },
   classTag: { fontSize: 12, textTransform: "uppercase", letterSpacing: 1.5, color: accent, fontWeight: 700, marginBottom: 6 },
+  listHead: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  csvLink: { fontSize: 13, fontWeight: 700, color: ink, textDecoration: "none", border: `1px solid ${line}`, background: "#fff", borderRadius: 8, padding: "7px 12px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 },
 };
 
 export const globalCss = `

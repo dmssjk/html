@@ -21,9 +21,11 @@ acontece no servidor** — o cliente nunca decide se uma presença vale:
 - Cada aula tem um **link estável** (`?mode=aluno&s=<id>`) que o professor
   compartilha; o check-in é por `sessionId` + GPS + aula aberta.
 - O professor recebe a lista de presença ao vivo por **Server-Sent Events**
-  (`/api/sessions/:id/stream`).
-- O store é em memória (`server/store.js`) — trocar por banco/redis é só
-  reimplementar esse módulo.
+  (`/api/sessions/:id/stream`) e pode **exportar a lista em CSV**.
+- O store é em memória com **persistência em arquivo** (`data/sessions.json`):
+  carrega no boot e grava (com debounce) a cada mudança, então reiniciar o
+  servidor não perde as aulas. Trocar por banco/redis é só reimplementar
+  `server/store.js`. O diretório dos dados é configurável via `DATA_DIR`.
 
 ### API
 
@@ -33,6 +35,7 @@ acontece no servidor** — o cliente nunca decide se uma presença vale:
 | GET    | `/api/sessions/:id`           | visão do professor (com lista de presença)  |
 | GET    | `/api/sessions/:id/public`    | visão do aluno (só nome + aberta?)          |
 | GET    | `/api/sessions/:id/stream`    | SSE ao vivo (lista de presença)             |
+| GET    | `/api/sessions/:id/export.csv`| baixa a lista de presença em CSV            |
 | POST   | `/api/sessions/:id/close`     | encerra a aula                              |
 | POST   | `/api/checkin`                | marca presença (valida `sessionId` + GPS)   |
 
@@ -96,7 +99,8 @@ de `server/store.js` (servidor).
 
 ## Limitações conhecidas
 
-- Store em memória: reiniciar o servidor perde as sessões (basta persistir).
+- Persistência é um arquivo JSON (`data/sessions.json`), sem índice nem
+  concorrência real — adequado a protótipo, troque por um banco para escala.
 - Anti-fraude = só GPS: o link é estável, então pode ser repassado para alguém
   fora da sala — mas o GPS bloqueia o check-in dele. GPS ainda é falsificável no
   aparelho. Ver "Próximos passos".
@@ -106,7 +110,7 @@ de `server/store.js` (servidor).
 ## Próximos passos
 
 1. **Identidade do aluno** (matrícula/login) no lugar de dedup por nome.
-2. **Persistência e relatórios** das presenças por aula (banco de dados).
+2. **Banco de dados** no lugar do arquivo JSON + histórico de aulas do professor.
 3. **Anti-fraude**: exigir `accuracy` mínima do GPS, limitar 1 check-in por
    dispositivo e detectar saltos improváveis de posição. Para reforçar o "estar
    presente no momento", dá para reintroduzir um token rotativo embutido no QR

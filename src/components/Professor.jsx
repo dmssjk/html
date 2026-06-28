@@ -139,7 +139,14 @@ export default function Professor() {
         </div>
       </div>
 
-      <h3 style={S.listTitle}>Lista de presença</h3>
+      <div style={S.listHead}>
+        <h3 style={{ ...S.listTitle, marginBottom: 0 }}>Lista de presença</h3>
+        {present.length > 0 && (
+          <a style={S.csvLink} href={`/api/sessions/${session.id}/export.csv`} download>
+            <span aria-hidden="true">⬇</span> CSV
+          </a>
+        )}
+      </div>
       {present.length === 0 ? (
         <div style={S.empty}>Ninguém marcou ainda. Os check-ins aparecem aqui na hora.</div>
       ) : (
