@@ -45,6 +45,11 @@ export const S = {
   successTitle: { fontSize: 24, fontWeight: 800 },
   successMsg: { fontSize: 14.5, opacity: 0.75, marginTop: 8, lineHeight: 1.45 },
   footer: { textAlign: "center", fontSize: 12, opacity: 0.5, padding: "16px 20px", borderTop: `1px solid ${line}` },
+  scanBtn: { width: "100%", padding: "12px", marginBottom: 8, background: "#fff", border: `1px solid ${line}`, borderRadius: 10, cursor: "pointer", fontSize: 15, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 },
+  scanWrap: { display: "flex", flexDirection: "column", gap: 12 },
+  video: { width: "100%", aspectRatio: "1 / 1", objectFit: "cover", borderRadius: 12, background: "#000" },
+  divider: { display: "flex", alignItems: "center", gap: 10, margin: "4px 0", fontSize: 12, opacity: 0.5 },
+  dividerLine: { flex: 1, height: 1, background: line },
 };
 
 export const globalCss = `

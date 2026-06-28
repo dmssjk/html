@@ -13,6 +13,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@zxing/browser": "^0.2.0",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "qrcode.react": "^4.2.0",

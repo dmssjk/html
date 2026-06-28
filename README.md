@@ -8,8 +8,8 @@ Dois modos:
 
 - **Professor** — abre a aula, fixa o GPS da sala, exibe o QR/código rotativo e
   acompanha a lista de presença ao vivo (via SSE).
-- **Aluno** — escaneia o QR (ou digita o código) e o servidor confere o token e
-  a distância antes de registrar a presença.
+- **Aluno** — escaneia o QR pela câmera (ou digita o código) e o servidor confere
+  o token e a distância antes de registrar a presença.
 
 ## Arquitetura
 
@@ -81,7 +81,12 @@ src/
     Professor.jsx         # cria sessão, assina SSE, mostra QR + lista ao vivo
     Aluno.jsx             # faz o check-in via API
     CheckinQR.jsx         # QR real (qrcode.react) com deep link
+    QrScanner.jsx         # leitura do QR pela câmera (@zxing, lazy-loaded)
 ```
+
+> A leitura do QR usa a câmera (`getUserMedia`) e o `@zxing/browser` é pesado,
+> então é carregado sob demanda (`React.lazy`) só quando o aluno toca em
+> "Escanear QR". Câmera também exige `https://` ou `localhost`.
 
 ## Parâmetros
 
@@ -100,9 +105,7 @@ de `server/store.js` (servidor).
 
 ## Próximos passos
 
-1. **Scanner de câmera** no app do aluno (ex.: `@zxing/browser`) em vez de
-   digitar o código.
-2. **Identidade do aluno** (matrícula/login) no lugar de dedup por nome.
-3. **Persistência e relatórios** das presenças por aula (banco de dados).
-4. **Anti-fraude**: assinar o token no servidor, exigir `accuracy` mínima do GPS
+1. **Identidade do aluno** (matrícula/login) no lugar de dedup por nome.
+2. **Persistência e relatórios** das presenças por aula (banco de dados).
+3. **Anti-fraude**: assinar o token no servidor, exigir `accuracy` mínima do GPS
    e detectar saltos improváveis de posição entre check-ins.
