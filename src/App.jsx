@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { S, globalCss } from "./styles.js";
 import { RADIUS_METERS, TOKEN_TTL } from "./constants.js";
-import { useSession } from "./hooks/useSession.js";
 import Home from "./components/Home.jsx";
 import Professor from "./components/Professor.jsx";
 import Aluno from "./components/Aluno.jsx";
@@ -15,7 +14,6 @@ function readDeepLink() {
 export default function App() {
   const deep = readDeepLink();
   const [mode, setMode] = useState(deep.mode === "aluno" || deep.mode === "prof" ? deep.mode : null);
-  const [session, setSession] = useSession();
 
   return (
     <div style={S.app}>
@@ -33,8 +31,8 @@ export default function App() {
       </header>
 
       {!mode && <Home setMode={setMode} />}
-      {mode === "prof" && <Professor session={session} setSession={setSession} />}
-      {mode === "aluno" && <Aluno session={session} setSession={setSession} initialCode={deep.code} />}
+      {mode === "prof" && <Professor />}
+      {mode === "aluno" && <Aluno initialCode={deep.code} />}
 
       <footer style={S.footer}>
         Protótipo · validação por GPS (raio {RADIUS_METERS}m) + token que expira em {TOKEN_TTL}s

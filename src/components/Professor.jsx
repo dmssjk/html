@@ -2,59 +2,85 @@ import { useEffect, useState } from "react";
 import { S } from "../styles.js";
 import { RADIUS_METERS, TOKEN_TTL, GEO_OPTS } from "../constants.js";
 import { getPosition } from "../utils/geo.js";
-import { makeToken, secondsLeft } from "../utils/token.js";
+import { secondsLeft } from "../utils/token.js";
 import { useNow } from "../hooks/useNow.js";
+import { createSession, getSession, closeSession, subscribeSession } from "../api.js";
 import CheckinQR from "./CheckinQR.jsx";
 
-export default function Professor({ session, setSession }) {
+const SID_KEY = "presenca:sid"; // id da aula desta professora, para retomar após refresh
+
+export default function Professor() {
   const [name, setName] = useState("");
-  const [locStatus, setLocStatus] = useState("idle"); // idle|loading|ok|error
-  const [locError, setLocError] = useState("");
+  const [status, setStatus] = useState("idle"); // idle|loading|ok|error
+  const [error, setError] = useState("");
+  const [sessionId, setSessionId] = useState(() => localStorage.getItem(SID_KEY));
+  const [session, setSession] = useState(null);
 
   const open = !!(session && session.open);
   const now = useNow(open);
   const left = open ? secondsLeft(session.tokenAt, now) : TOKEN_TTL;
 
+  // Retoma/assina a sessão sempre que houver um id (após criar ou após refresh).
+  useEffect(() => {
+    if (!sessionId) return;
+    let active = true;
+    let unsub;
+    getSession(sessionId).then((s) => {
+      if (!active) return;
+      if (!s || !s.open) {
+        localStorage.removeItem(SID_KEY);
+        setSessionId(null);
+        setSession(null);
+        return;
+      }
+      setSession(s);
+      unsub = subscribeSession(sessionId, setSession);
+    });
+    return () => {
+      active = false;
+      if (unsub) unsub();
+    };
+  }, [sessionId]);
+
   const startSession = async () => {
-    setLocStatus("loading");
-    setLocError("");
+    setStatus("loading");
+    setError("");
+    let pos;
     try {
-      const pos = await getPosition(GEO_OPTS);
-      setSession({
-        open: true,
-        name: name.trim() || "Aula sem nome",
-        loc: { lat: pos.coords.latitude, lng: pos.coords.longitude },
-        accuracy: pos.coords.accuracy,
-        token: makeToken(),
-        tokenAt: Date.now(),
-        createdAt: Date.now(),
-        present: [],
-      });
-      setLocStatus("ok");
+      pos = await getPosition(GEO_OPTS);
     } catch (err) {
-      setLocStatus("error");
-      setLocError(
+      setStatus("error");
+      setError(
         err.code === "no-geo"
           ? "Este navegador não expõe geolocalização."
           : err.code === 1
           ? "Permissão de localização negada. Autorize para abrir a aula."
           : "Não consegui obter a localização. Tente de novo."
       );
+      return;
+    }
+    try {
+      const s = await createSession({
+        name: name.trim(),
+        loc: { lat: pos.coords.latitude, lng: pos.coords.longitude },
+        accuracy: pos.coords.accuracy,
+      });
+      localStorage.setItem(SID_KEY, s.id);
+      setSession(s);
+      setSessionId(s.id); // dispara o efeito de assinatura
+      setStatus("ok");
+    } catch {
+      setStatus("error");
+      setError("Não consegui falar com o servidor. Ele está rodando?");
     }
   };
 
-  // Esta aba (a do professor) é dona da sessão e roda a rotação do token.
-  // Ao expirar, gera um novo e atualiza a sessão compartilhada.
-  useEffect(() => {
-    if (open && left <= 0) {
-      setSession((prev) =>
-        prev && prev.open ? { ...prev, token: makeToken(), tokenAt: Date.now() } : prev
-      );
-    }
-  }, [open, left, setSession]);
-
-  const closeSession = () => {
-    setSession((prev) => (prev ? { ...prev, open: false } : prev));
+  const endSession = async () => {
+    if (sessionId) await closeSession(sessionId);
+    localStorage.removeItem(SID_KEY);
+    setSessionId(null);
+    setSession(null);
+    setStatus("idle");
   };
 
   if (!open) {
@@ -73,9 +99,9 @@ export default function Professor({ session, setSession }) {
           Ao abrir, vamos marcar a localização atual como o ponto da sala.
           Fique dentro da sala neste momento.
         </p>
-        {locStatus === "error" && <div style={S.errorBox} role="alert">{locError}</div>}
-        <button style={S.primaryBtn} onClick={startSession} disabled={locStatus === "loading"}>
-          {locStatus === "loading" ? "Obtendo localização…" : "Abrir aula e fixar local"}
+        {status === "error" && <div style={S.errorBox} role="alert">{error}</div>}
+        <button style={S.primaryBtn} onClick={startSession} disabled={status === "loading"}>
+          {status === "loading" ? "Obtendo localização…" : "Abrir aula e fixar local"}
         </button>
       </main>
     );
@@ -91,7 +117,7 @@ export default function Professor({ session, setSession }) {
             {present.length} presença{present.length === 1 ? "" : "s"} · precisão GPS ±{Math.round(session.accuracy)}m
           </div>
         </div>
-        <button style={S.dangerBtn} onClick={closeSession}>Encerrar</button>
+        <button style={S.dangerBtn} onClick={endSession}>Encerrar</button>
       </div>
 
       <div style={S.qrWrap}>

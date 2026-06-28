@@ -1,14 +1,10 @@
 import { useState } from "react";
 import { S } from "../styles.js";
 import { RADIUS_METERS, GEO_OPTS } from "../constants.js";
-import { distMeters, getPosition } from "../utils/geo.js";
-import { isTokenValid } from "../utils/token.js";
+import { getPosition } from "../utils/geo.js";
+import { checkin } from "../api.js";
 
-function makeId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-}
-
-export default function Aluno({ session, setSession, initialCode = "" }) {
+export default function Aluno({ initialCode = "" }) {
   const [name, setName] = useState("");
   const [code, setCode] = useState(initialCode);
   const [status, setStatus] = useState("form"); // form|checking|ok|error
@@ -16,48 +12,14 @@ export default function Aluno({ session, setSession, initialCode = "" }) {
 
   const submit = async () => {
     if (!name.trim()) { setStatus("error"); setMsg("Digite seu nome."); return; }
-    if (!session || !session.open) { setStatus("error"); setMsg("Nenhuma aula aberta no momento."); return; }
-    if (!isTokenValid(session, code)) {
-      setStatus("error");
-      setMsg("Código inválido ou expirado. Use o código que está na tela agora.");
-      return;
-    }
+    if (!code.trim()) { setStatus("error"); setMsg("Digite o código da tela do professor."); return; }
 
     setStatus("checking");
     setMsg("Conferindo sua localização…");
+
+    let pos;
     try {
-      const pos = await getPosition(GEO_OPTS);
-      const here = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      const d = Math.round(distMeters(session.loc, here));
-
-      if (d > RADIUS_METERS) {
-        setStatus("error");
-        setMsg(`Você está a ~${d}m da sala. Precisa estar a no máximo ${RADIUS_METERS}m para marcar presença.`);
-        return;
-      }
-
-      const normalized = name.trim().toLowerCase();
-      const already = (session.present || []).some((p) => p.name.toLowerCase() === normalized);
-      if (already) {
-        setStatus("ok");
-        setMsg("Você já estava marcado como presente. Tudo certo!");
-        return;
-      }
-
-      const entry = {
-        id: makeId(),
-        name: name.trim(),
-        dist: d,
-        time: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-      };
-      // Re-checa a sessão na hora de gravar: outra aba pode tê-la encerrado
-      // enquanto o GPS era lido.
-      setSession((prev) => {
-        if (!prev || !prev.open) return prev;
-        return { ...prev, present: [...(prev.present || []), entry] };
-      });
-      setStatus("ok");
-      setMsg(`Presença confirmada a ${d}m da sala. 👍`);
+      pos = await getPosition(GEO_OPTS);
     } catch (err) {
       setStatus("error");
       setMsg(
@@ -67,6 +29,39 @@ export default function Aluno({ session, setSession, initialCode = "" }) {
           ? "Permissão de localização negada. Autorize o acesso e tente de novo."
           : "Não consegui ler sua localização. Tente de novo."
       );
+      return;
+    }
+
+    try {
+      const { body } = await checkin({
+        name: name.trim(),
+        code: code.trim().toUpperCase(),
+        loc: { lat: pos.coords.latitude, lng: pos.coords.longitude },
+      });
+
+      if (body.ok) {
+        setStatus("ok");
+        setMsg(
+          body.already
+            ? "Você já estava marcado como presente. Tudo certo!"
+            : `Presença confirmada a ${body.dist}m da sala. 👍`
+        );
+        return;
+      }
+
+      setStatus("error");
+      setMsg(
+        body.error === "token"
+          ? "Código inválido ou expirado. Use o código que está na tela agora."
+          : body.error === "distance"
+          ? `Você está a ~${body.dist}m da sala. Precisa estar a no máximo ${RADIUS_METERS}m para marcar presença.`
+          : body.error === "name"
+          ? "Digite seu nome."
+          : "Não foi possível marcar presença. Tente de novo."
+      );
+    } catch {
+      setStatus("error");
+      setMsg("Falha ao falar com o servidor. Verifique sua conexão e tente de novo.");
     }
   };
 
